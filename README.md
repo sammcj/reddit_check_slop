@@ -185,6 +185,7 @@ Generated with `npm run example`:
 ## Contributing
 
 - Git repo: https://github.com/sammcj/reddit_check_slop
+- Reddit app: https://developers.reddit.com/apps/check-slop
 
 ## Licence
 
