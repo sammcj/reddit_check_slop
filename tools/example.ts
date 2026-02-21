@@ -3,6 +3,9 @@
  * Standalone example runner -- applies the same detection logic as server.ts
  * against local test data files and prints results to stdout.
  *
+ * Output mirrors the markdown format the app writes to the Devvit log, so you
+ * can preview what `devvit logs` would show without deploying.
+ *
  * Usage: npm run example
  *
  * Constants are intentionally duplicated here because server.ts imports from
@@ -76,44 +79,6 @@ const SLOP_PHRASE_RES: readonly RegExp[] = SLOP_PHRASES.map(
 // Helpers
 // ---------------------------------------------------------------------------
 
-interface PostResult {
-  source: string;
-  index: number;
-  title: string;
-  emojiLines: string[];
-  matchedPhrases: string[];
-}
-
-function extractTitle(body: string): string {
-  const match = body.match(/^#\s+(.+)/m);
-  return match ? match[1].trim() : "(untitled)";
-}
-
-function analysePost(
-  body: string,
-  source: string,
-  index: number,
-): PostResult {
-  const title = extractTitle(body);
-  const emojiLines: string[] = [];
-  const matchedPhrases: string[] = [];
-
-  for (const line of body.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed && EMOJI_LINE_RE.test(trimmed)) {
-      emojiLines.push(trimmed);
-    }
-  }
-
-  for (const [i, re] of SLOP_PHRASE_RES.entries()) {
-    if (re.test(body)) {
-      matchedPhrases.push(SLOP_PHRASES[i]!);
-    }
-  }
-
-  return { source, index, title, emojiLines, matchedPhrases };
-}
-
 function splitPosts(content: string): string[] {
   return content
     .split(/^---$/m)
@@ -121,127 +86,142 @@ function splitPosts(content: string): string[] {
     .filter(Boolean);
 }
 
-function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max) + "..." : s;
+/** Duplicated from server.ts -- builds a padded markdown table. */
+function formatTable(
+  headers: string[],
+  align: ("l" | "r")[],
+  rows: string[][],
+): string[] {
+  const cols = headers.length;
+  const widths: number[] = headers.map((h) => h.length);
+  for (const row of rows) {
+    for (let i = 0; i < cols; i++) {
+      widths[i] = Math.max(widths[i]!, (row[i] ?? "").length);
+    }
+  }
+
+  const pad = (s: string, w: number, a: "l" | "r") =>
+    a === "r" ? s.padStart(w) : s.padEnd(w);
+
+  const fmtRow = (cells: string[]) =>
+    "| " +
+    cells.map((c, i) => pad(c, widths[i]!, align[i] ?? "l")).join(" | ") +
+    " |";
+
+  const sep =
+    "| " +
+    widths
+      .map((w, i) => {
+        const dashes = "-".repeat(w);
+        return (align[i] ?? "l") === "r" ? dashes.slice(0, -1) + ":" : dashes;
+      })
+      .join(" | ") +
+    " |";
+
+  return [fmtRow(headers), sep, ...rows.map(fmtRow)];
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Main -- replicate the server's scan logic against local files
 // ---------------------------------------------------------------------------
 
 const rootDir = resolve(import.meta.dirname ?? ".", "..");
 const dataDir = resolve(rootDir, "test_data");
 
-const files = [
-  "example_slop_posts.md",
-  "example_real_posts.md",
-];
+const files = ["example_slop_posts.md", "example_real_posts.md"];
 
-const allResults: PostResult[] = [];
+const postBodies: string[] = [];
 
 for (const file of files) {
   const filePath = resolve(dataDir, file);
   const content = readFileSync(filePath, "utf-8");
-  const posts = splitPosts(content);
-
-  for (let i = 0; i < posts.length; i++) {
-    allResults.push(analysePost(posts[i]!, file, i + 1));
-  }
+  postBodies.push(...splitPosts(content));
 }
 
-// ---------------------------------------------------------------------------
-// Per-post detail output
-// ---------------------------------------------------------------------------
-
-console.log("=".repeat(72));
-console.log("  SLOP DETECTION -- EXAMPLE RUNNER");
-console.log("=".repeat(72));
-console.log();
-
-for (const r of allResults) {
-  const total = r.emojiLines.length + r.matchedPhrases.length;
-  const tag = total > 0 ? `TRIGGERED (${total})` : "CLEAN";
-
-  console.log(`--- [${r.source}] Post ${r.index}: ${r.title}`);
-  console.log(`    Result: ${tag}`);
-
-  if (r.emojiLines.length > 0) {
-    console.log(`    Emoji lines (${r.emojiLines.length}):`);
-    for (const line of r.emojiLines) {
-      console.log(`      ${truncate(line, MAX_LINE_LENGTH)}`);
-    }
-  }
-
-  if (r.matchedPhrases.length > 0) {
-    console.log(`    Slop phrases (${r.matchedPhrases.length}):`);
-    for (const phrase of r.matchedPhrases) {
-      console.log(`      - "${phrase}"`);
-    }
-  }
-
-  console.log();
-}
-
-// ---------------------------------------------------------------------------
-// Aggregate summary (markdown table matching server output style)
-// ---------------------------------------------------------------------------
+// -- Detection (mirrors src/server/server.ts onScanEmojiPatterns) ----------
 
 const emojiCounts = new Map<string, number>();
 const phraseCounts = new Map<string, number>();
 let postsWithEmoji = 0;
 let postsWithPhrases = 0;
 
-for (const r of allResults) {
-  if (r.emojiLines.length > 0) postsWithEmoji++;
-  if (r.matchedPhrases.length > 0) postsWithPhrases++;
+for (const body of postBodies) {
+  const lines = body.split("\n");
+  let postHadEmoji = false;
 
-  for (const line of r.emojiLines) {
-    emojiCounts.set(line, (emojiCounts.get(line) || 0) + 1);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
+
+    postHadEmoji = true;
+    emojiCounts.set(trimmed, (emojiCounts.get(trimmed) || 0) + 1);
   }
-  for (const phrase of r.matchedPhrases) {
-    phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
+
+  if (postHadEmoji) postsWithEmoji++;
+
+  let postHadPhrase = false;
+  for (const [i, re] of SLOP_PHRASE_RES.entries()) {
+    if (re.test(body)) {
+      postHadPhrase = true;
+      const phrase = SLOP_PHRASES[i]!;
+      phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
+    }
   }
+  if (postHadPhrase) postsWithPhrases++;
 }
 
 const sortedEmoji = [...emojiCounts.entries()].sort((a, b) => b[1] - a[1]);
-const sortedPhrases = [...phraseCounts.entries()].sort((a, b) => b[1] - a[1]);
+const sortedPhrases = [...phraseCounts.entries()].sort(
+  (a, b) => b[1] - a[1],
+);
+const totalIndicators = sortedEmoji.length + sortedPhrases.length;
 
-console.log("=".repeat(72));
-console.log("  AGGREGATE RESULTS (markdown)");
-console.log("=".repeat(72));
-console.log();
+// -- Build markdown output (same format as server) -------------------------
 
-console.log(`## Slop scan results (example data)`);
-console.log();
-console.log(`- **Total posts scanned:** ${allResults.length}`);
-console.log(`- **Posts with emoji-prefixed lines:** ${postsWithEmoji}`);
-console.log(`- **Posts with slop phrases:** ${postsWithPhrases}`);
-console.log();
+const out: string[] = [
+  `## Slop scan results for example test data`,
+  "",
+  `- **Posts scanned:** ${postBodies.length}`,
+  `- **Posts with emoji-prefixed lines:** ${postsWithEmoji}`,
+  `- **Posts with slop phrases:** ${postsWithPhrases}`,
+  "",
+];
 
 if (sortedEmoji.length > 0) {
-  console.log(`### Emoji-prefixed lines (${sortedEmoji.length} unique)`);
-  console.log();
-  console.log("| Count | Line |");
-  console.log("|------:|------|");
-  for (const [line, count] of sortedEmoji) {
+  out.push(`### Emoji-prefixed lines (${sortedEmoji.length} unique)`);
+  out.push("");
+
+  const emojiRows = sortedEmoji.map(([line, count]) => {
     const escaped =
       line.length > MAX_LINE_LENGTH
         ? line.slice(0, MAX_LINE_LENGTH).replace(/\|/g, "\\|") + "..."
         : line.replace(/\|/g, "\\|");
-    console.log(`| ${count} | ${escaped} |`);
-  }
-  console.log();
+    return [String(count), escaped];
+  });
+  out.push(...formatTable(["Count", "Line"], ["r", "l"], emojiRows));
+
+  out.push("");
 }
 
 if (sortedPhrases.length > 0) {
-  console.log(
+  out.push(
     `### Slop phrases matched (${sortedPhrases.length} unique across ${postsWithPhrases} posts)`,
   );
-  console.log();
-  console.log("| Posts | Phrase |");
-  console.log("|------:|--------|");
-  for (const [phrase, count] of sortedPhrases) {
-    console.log(`| ${count} | ${phrase} |`);
-  }
-  console.log();
+  out.push("");
+
+  const phraseRows = sortedPhrases.map(([phrase, count]) => [
+    String(count),
+    phrase,
+  ]);
+  out.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
+
+  out.push("");
+}
+
+if (totalIndicators === 0) {
+  out.push("No slop indicators found in the scanned posts.");
+}
+
+for (const line of out) {
+  console.log(line);
 }

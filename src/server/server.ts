@@ -96,6 +96,44 @@ function isBot(username: string): boolean {
   return BOT_USERNAMES.has(lower) || lower.endsWith("bot");
 }
 
+/**
+ * Builds a padded markdown table. Each column is sized to the widest cell.
+ * `align` per column: "r" for right-align, "l" (default) for left-align.
+ */
+function formatTable(
+  headers: string[],
+  align: ("l" | "r")[],
+  rows: string[][],
+): string[] {
+  const cols = headers.length;
+  const widths: number[] = headers.map((h) => h.length);
+  for (const row of rows) {
+    for (let i = 0; i < cols; i++) {
+      widths[i] = Math.max(widths[i]!, (row[i] ?? "").length);
+    }
+  }
+
+  const pad = (s: string, w: number, a: "l" | "r") =>
+    a === "r" ? s.padStart(w) : s.padEnd(w);
+
+  const fmtRow = (cells: string[]) =>
+    "| " +
+    cells.map((c, i) => pad(c, widths[i]!, align[i] ?? "l")).join(" | ") +
+    " |";
+
+  const sep =
+    "| " +
+    widths
+      .map((w, i) => {
+        const dashes = "-".repeat(w);
+        return (align[i] ?? "l") === "r" ? dashes.slice(0, -1) + ":" : dashes;
+      })
+      .join(" | ") +
+    " |";
+
+  return [fmtRow(headers), sep, ...rows.map(fmtRow)];
+}
+
 export async function serverOnRequest(
   req: IncomingMessage,
   rsp: ServerResponse,
@@ -251,16 +289,15 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
   if (sortedEmoji.length > 0) {
     lines.push(`### Emoji-prefixed lines (${sortedEmoji.length} unique)`);
     lines.push("");
-    lines.push("| Count | Line |");
-    lines.push("|------:|------|");
 
-    for (const [line, count] of sortedEmoji) {
+    const emojiRows = sortedEmoji.map(([line, count]) => {
       const escaped =
         line.length > MAX_LINE_LENGTH
           ? line.slice(0, MAX_LINE_LENGTH).replace(/\|/g, "\\|") + "..."
           : line.replace(/\|/g, "\\|");
-      lines.push(`| ${count} | ${escaped} |`);
-    }
+      return [String(count), escaped];
+    });
+    lines.push(...formatTable(["Count", "Line"], ["r", "l"], emojiRows));
 
     lines.push("");
   }
@@ -271,12 +308,12 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
       `### Slop phrases matched (${sortedPhrases.length} unique across ${postsWithPhrases} posts)`,
     );
     lines.push("");
-    lines.push("| Posts | Phrase |");
-    lines.push("|------:|--------|");
 
-    for (const [phrase, count] of sortedPhrases) {
-      lines.push(`| ${count} | ${phrase} |`);
-    }
+    const phraseRows = sortedPhrases.map(([phrase, count]) => [
+      String(count),
+      phrase,
+    ]);
+    lines.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
 
     lines.push("");
   }
