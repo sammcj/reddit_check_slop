@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "check-slop",
+  "permissions": {
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.js"
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Scan removed posts for emoji slop",
+        "description": "Scans mod log for removed posts and extracts emoji-prefixed lines",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/scan-emoji-patterns"
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "node --experimental-strip-types ./tools/build.ts --watch",
+    "build": "node --experimental-strip-types ./tools/build.ts --minify"
+  },
+  "dev": {
+    "subreddit": "check_slop_dev"
+  }
+}
