@@ -128,58 +128,26 @@ Generated with `npm run example`:
 
 ### Emoji-prefixed lines (19 unique)
 
-| Count | Line                                                          |
-| ----: | ------------------------------------------------------------- |
-|     1 | 🔥 Automate your entire workflow in seconds                    |
-|     1 | 🚀 State-of-the-art language model fine-tuning                 |
-|     1 | 💡 Built-in RAG pipeline with zero config                      |
-|     1 | ✨ Seamlessly integrates with Slack, Notion, and 50+ tools     |
-|     1 | 🎯 Enterprise-grade security out of the box                    |
-|     1 | 🌟 50% faster inference                                        |
-|     1 | 🔧 Seamlessly integrates with your existing ML pipeline        |
-|     1 | 📊 Best-in-class benchmarks on MMLU and HumanEval              |
-|     1 | 🛡️ Enterprise-grade model governance                           |
-|     1 | 1️⃣ CodePilot Pro -- AI pair programming that actually works    |
-|     1 | 2️⃣ DataMesh AI -- comprehensive data pipeline automation       |
+| Count | Line                                                            | Post(s)                                        |
+| ----: | --------------------------------------------------------------- | ---------------------------------------------- |
+|     1 | 🔥 Automate your entire workflow in seconds                     | https://reddit.com/r/example/comments/fake000/ |
+|     1 | 🚀 State-of-the-art language model fine-tuning                  | https://reddit.com/r/example/comments/fake000/ |
+|     1 | 💡 Built-in RAG pipeline with zero config                       | https://reddit.com/r/example/comments/fake000/ |
+|     1 | ✨ Seamlessly integrates with Slack, Notion, and 50+ tools       | https://reddit.com/r/example/comments/fake000/ |
+|     1 | 🎯 Enterprise-grade security out of the box                     | https://reddit.com/r/example/comments/fake000/ |
+|     1 | 🌟 50% faster inference                                         | https://reddit.com/r/example/comments/fake002/ |
 
 ### Slop phrases matched (31 unique across 7 posts)
 
-| Posts | Phrase                    |
-| ----: | ------------------------- |
-|     3 | enterprise-grade          |
-|     3 | seamlessly integrat       |
-|     3 | state-of-the-art          |
-|     2 | excited to share          |
-|     2 | game-changer              |
-|     2 | without further ado       |
-|     2 | cutting-edge              |
-|     2 | deep dive                 |
-|     2 | explore how               |
-|     2 | production-ready          |
-|     2 | best-in-class             |
-|     2 | next-gen                  |
-|     2 | revolutionize             |
-|     2 | happy to announce         |
-|     1 | comprehensive platform    |
-|     1 | comprehensive guide       |
-|     1 | comprehensive suite       |
-|     1 | delve into                |
-|     1 | harness the power         |
-|     1 | in this article           |
-|     1 | robust and scalable       |
-
-**https://reddit.com/r/example/comments/fake003/** (8 indicators)
-- Phrases: cutting-edge, explore how, groundbreaking, happy to announce, leverage the power, our research, revolutionize, state-of-the-art
-
-**https://reddit.com/r/example/comments/fake004/** (18 indicators)
-- Emoji lines: 10
-- Phrases: best-in-class, enterprise-grade, game-changer, next-gen, production-ready, seamlessly integrat, unleash the power, without further ado
-
-**https://reddit.com/r/example/comments/fake005/** (3 indicators)
-- Phrases: comprehensive solution, excited to share, pleased to announce
-
-**https://reddit.com/r/example/comments/fake011/** (1 indicators)
-- Phrases: deep dive
+| Posts | Phrase               | Post(s)                                                                            |
+| ----: | -------------------- | ---------------------------------------------------------------------------------- |
+|     3 | enterprise-grade     | https://reddit.com/.../fake000/ https://reddit.com/.../fake002/ https://...fake004 |
+|     3 | seamlessly integrat  | https://reddit.com/.../fake000/ https://reddit.com/.../fake002/ https://...fake004 |
+|     3 | state-of-the-art     | https://reddit.com/.../fake000/ https://reddit.com/.../fake001/ https://...fake003 |
+|     2 | excited to share     | https://reddit.com/.../fake000/ https://reddit.com/.../fake005/                    |
+|     2 | game-changer         | https://reddit.com/.../fake000/ https://reddit.com/.../fake004/                    |
+|     1 | comprehensive guide  | https://reddit.com/.../fake001/                                                    |
+|     1 | delve into           | https://reddit.com/.../fake001/                                                    |
 ```
 
 ## Contributing

@@ -134,58 +134,49 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
     `Collected body text from ${postBodies.size} posts (${fetchErrors} fetch errors)`,
   );
 
-  // Extract emoji-prefixed lines and slop phrases from each post
-  interface PostHit {
-    postId: string;
-    url: string;
-    emojiLines: string[];
-    matchedPhrases: string[];
-  }
-
-  const emojiCounts = new Map<string, number>();
-  const phraseCounts = new Map<string, number>();
-  const postHits: PostHit[] = [];
+  // Extract emoji-prefixed lines and slop phrases from each post,
+  // tracking which post URLs each line/phrase appeared in.
+  const emojiPosts = new Map<string, string[]>();
+  const phrasePosts = new Map<string, string[]>();
   let postsWithEmoji = 0;
   let postsWithPhrases = 0;
 
   for (const [postId, body] of postBodies.entries()) {
+    const url = `https://reddit.com/r/${subredditName}/comments/${postId.replace("t3_", "")}/`;
     const lines = body.split("\n");
-    const hit: PostHit = {
-      postId,
-      url: `https://reddit.com/r/${subredditName}/comments/${postId.replace("t3_", "")}/`,
-      emojiLines: [],
-      matchedPhrases: [],
-    };
+    let postHadEmoji = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
 
-      hit.emojiLines.push(trimmed);
-      emojiCounts.set(trimmed, (emojiCounts.get(trimmed) || 0) + 1);
+      postHadEmoji = true;
+      const urls = emojiPosts.get(trimmed);
+      if (urls) urls.push(url);
+      else emojiPosts.set(trimmed, [url]);
     }
 
-    if (hit.emojiLines.length > 0) postsWithEmoji++;
+    if (postHadEmoji) postsWithEmoji++;
 
-    // Check full body for slop phrases
+    let postHadPhrase = false;
     for (const [i, re] of SLOP_PHRASE_RES.entries()) {
       if (re.test(body)) {
+        postHadPhrase = true;
         const phrase = SLOP_PHRASES[i] as string;
-        hit.matchedPhrases.push(phrase);
-        phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
+        const urls = phrasePosts.get(phrase);
+        if (urls) urls.push(url);
+        else phrasePosts.set(phrase, [url]);
       }
     }
-    if (hit.matchedPhrases.length > 0) postsWithPhrases++;
-
-    if (hit.emojiLines.length > 0 || hit.matchedPhrases.length > 0) {
-      postHits.push(hit);
-    }
+    if (postHadPhrase) postsWithPhrases++;
   }
 
   // Sort by frequency descending
-  const sortedEmoji = [...emojiCounts.entries()].sort((a, b) => b[1] - a[1]);
-  const sortedPhrases = [...phraseCounts.entries()].sort(
-    (a, b) => b[1] - a[1],
+  const sortedEmoji = [...emojiPosts.entries()].sort(
+    (a, b) => b[1].length - a[1].length,
+  );
+  const sortedPhrases = [...phrasePosts.entries()].sort(
+    (a, b) => b[1].length - a[1].length,
   );
 
   const totalIndicators = sortedEmoji.length + sortedPhrases.length;
@@ -206,14 +197,16 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
     lines.push(`### Emoji-prefixed lines (${sortedEmoji.length} unique)`);
     lines.push("");
 
-    const emojiRows = sortedEmoji.map(([line, count]) => {
+    const emojiRows = sortedEmoji.map(([line, urls]) => {
       const escaped =
         line.length > MAX_LINE_LENGTH
           ? line.slice(0, MAX_LINE_LENGTH).replace(/\|/g, "\\|") + "..."
           : line.replace(/\|/g, "\\|");
-      return [String(count), escaped];
+      return [String(urls.length), escaped, urls.join(" ")];
     });
-    lines.push(...formatTable(["Count", "Line"], ["r", "l"], emojiRows));
+    lines.push(
+      ...formatTable(["Count", "Line", "Post(s)"], ["r", "l", "l"], emojiRows),
+    );
 
     lines.push("");
   }
@@ -225,31 +218,16 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
     );
     lines.push("");
 
-    const phraseRows = sortedPhrases.map(([phrase, count]) => [
-      String(count),
+    const phraseRows = sortedPhrases.map(([phrase, urls]) => [
+      String(urls.length),
       phrase,
+      urls.join(" "),
     ]);
-    lines.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
+    lines.push(
+      ...formatTable(["Posts", "Phrase", "Post(s)"], ["r", "l", "l"], phraseRows),
+    );
 
     lines.push("");
-  }
-
-  // Per-post breakdown with URLs
-  if (postHits.length > 0) {
-    lines.push(`### Triggered posts (${postHits.length})`);
-    lines.push("");
-
-    for (const hit of postHits) {
-      const indicators = hit.emojiLines.length + hit.matchedPhrases.length;
-      lines.push(`**${hit.url}** (${indicators} indicators)`);
-      if (hit.emojiLines.length > 0) {
-        lines.push(`- Emoji lines: ${hit.emojiLines.length}`);
-      }
-      if (hit.matchedPhrases.length > 0) {
-        lines.push(`- Phrases: ${hit.matchedPhrases.join(", ")}`);
-      }
-      lines.push("");
-    }
   }
 
   if (totalIndicators === 0) {

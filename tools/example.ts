@@ -49,54 +49,47 @@ for (const file of files) {
 
 // -- Detection (mirrors src/server/server.ts onScanEmojiPatterns) ----------
 
-interface PostHit {
-  url: string;
-  emojiLines: string[];
-  matchedPhrases: string[];
-}
-
-const emojiCounts = new Map<string, number>();
-const phraseCounts = new Map<string, number>();
-const postHits: PostHit[] = [];
+const emojiPosts = new Map<string, string[]>();
+const phrasePosts = new Map<string, string[]>();
 let postsWithEmoji = 0;
 let postsWithPhrases = 0;
 
 for (let p = 0; p < postBodies.length; p++) {
   const body = postBodies[p]!;
+  const url = `https://reddit.com/r/example/comments/fake${String(p).padStart(3, "0")}/`;
   const lines = body.split("\n");
-  const hit: PostHit = {
-    url: `https://reddit.com/r/example/comments/fake${String(p).padStart(3, "0")}/`,
-    emojiLines: [],
-    matchedPhrases: [],
-  };
+  let postHadEmoji = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
 
-    hit.emojiLines.push(trimmed);
-    emojiCounts.set(trimmed, (emojiCounts.get(trimmed) || 0) + 1);
+    postHadEmoji = true;
+    const urls = emojiPosts.get(trimmed);
+    if (urls) urls.push(url);
+    else emojiPosts.set(trimmed, [url]);
   }
 
-  if (hit.emojiLines.length > 0) postsWithEmoji++;
+  if (postHadEmoji) postsWithEmoji++;
 
+  let postHadPhrase = false;
   for (const [i, re] of SLOP_PHRASE_RES.entries()) {
     if (re.test(body)) {
+      postHadPhrase = true;
       const phrase = SLOP_PHRASES[i]!;
-      hit.matchedPhrases.push(phrase);
-      phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
+      const urls = phrasePosts.get(phrase);
+      if (urls) urls.push(url);
+      else phrasePosts.set(phrase, [url]);
     }
   }
-  if (hit.matchedPhrases.length > 0) postsWithPhrases++;
-
-  if (hit.emojiLines.length > 0 || hit.matchedPhrases.length > 0) {
-    postHits.push(hit);
-  }
+  if (postHadPhrase) postsWithPhrases++;
 }
 
-const sortedEmoji = [...emojiCounts.entries()].sort((a, b) => b[1] - a[1]);
-const sortedPhrases = [...phraseCounts.entries()].sort(
-  (a, b) => b[1] - a[1],
+const sortedEmoji = [...emojiPosts.entries()].sort(
+  (a, b) => b[1].length - a[1].length,
+);
+const sortedPhrases = [...phrasePosts.entries()].sort(
+  (a, b) => b[1].length - a[1].length,
 );
 const totalIndicators = sortedEmoji.length + sortedPhrases.length;
 
@@ -115,14 +108,16 @@ if (sortedEmoji.length > 0) {
   out.push(`### Emoji-prefixed lines (${sortedEmoji.length} unique)`);
   out.push("");
 
-  const emojiRows = sortedEmoji.map(([line, count]) => {
+  const emojiRows = sortedEmoji.map(([line, urls]) => {
     const escaped =
       line.length > MAX_LINE_LENGTH
         ? line.slice(0, MAX_LINE_LENGTH).replace(/\|/g, "\\|") + "..."
         : line.replace(/\|/g, "\\|");
-    return [String(count), escaped];
+    return [String(urls.length), escaped, urls.join(" ")];
   });
-  out.push(...formatTable(["Count", "Line"], ["r", "l"], emojiRows));
+  out.push(
+    ...formatTable(["Count", "Line", "Post(s)"], ["r", "l", "l"], emojiRows),
+  );
 
   out.push("");
 }
@@ -133,30 +128,16 @@ if (sortedPhrases.length > 0) {
   );
   out.push("");
 
-  const phraseRows = sortedPhrases.map(([phrase, count]) => [
-    String(count),
+  const phraseRows = sortedPhrases.map(([phrase, urls]) => [
+    String(urls.length),
     phrase,
+    urls.join(" "),
   ]);
-  out.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
+  out.push(
+    ...formatTable(["Posts", "Phrase", "Post(s)"], ["r", "l", "l"], phraseRows),
+  );
 
   out.push("");
-}
-
-if (postHits.length > 0) {
-  out.push(`### Triggered posts (${postHits.length})`);
-  out.push("");
-
-  for (const hit of postHits) {
-    const indicators = hit.emojiLines.length + hit.matchedPhrases.length;
-    out.push(`**${hit.url}** (${indicators} indicators)`);
-    if (hit.emojiLines.length > 0) {
-      out.push(`- Emoji lines: ${hit.emojiLines.length}`);
-    }
-    if (hit.matchedPhrases.length > 0) {
-      out.push(`- Phrases: ${hit.matchedPhrases.join(", ")}`);
-    }
-    out.push("");
-  }
 }
 
 if (totalIndicators === 0) {
