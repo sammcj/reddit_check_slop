@@ -24,7 +24,7 @@ It does **not** take any actions, it's only for reporting / generating lists of 
 
 ## Data access
 
-The app requests **moderator** scope. It reads:
+The app requests **moderator** scope as it _reads_:
 
 - **Mod log** -- `removelink` actions only.
 - **Post bodies** -- the text content of removed posts.
@@ -42,16 +42,23 @@ The only user-facing output is a toast notification confirming the scan finished
 
 ## Configuration
 
-Tuneable constants live in a `CONFIG` block at the top of `src/server/server.ts`:
+### Detection rules -- [`rules.json`](./rules.json)
 
-| Constant            | Default                                                              | Purpose                                                                                                                    |
-| ------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `MOD_LOG_LIMIT`     | `1500`                                                               | Max mod log entries to fetch (controls how far back the scan reaches)                                                      |
-| `MOD_LOG_PAGE_SIZE` | `100`                                                                | Entries per API page                                                                                                       |
-| `MAX_LINE_LENGTH`   | `200`                                                                | Truncation length for output lines in the results table                                                                    |
-| `BOT_USERNAMES`     | `automoderator`, `botdefense`, `anti-evil operations`, `bot-bouncer` | Accounts excluded from results (case-insensitive). Usernames ending in `bot` are also excluded automatically.              |
-| `EMOJI_LINE_RE`     | See source                                                           | Regex matching lines starting with pictographic emoji (uses `Emoji_Presentation` to avoid false positives on text symbols) |
-| `SLOP_PHRASES`      | See source                                                           | List of case-insensitive phrases to search for in post bodies (e.g. "game changer", "excited to share")                    |
+Edit `rules.json` at the project root to tune what the scanner looks for. Both the Devvit app and the local example runner (`npm run example`) read from this file.
+
+| Key           | Purpose                                                                            |
+| ------------- | ---------------------------------------------------------------------------------- |
+| `slopPhrases` | Array of case-insensitive phrases (or regex patterns) matched against post bodies. |
+
+The emoji-line regex (`EMOJI_LINE_RE`) lives in `src/shared/rules.ts` because JSON can't represent RegExp.
+
+### Server settings -- `src/server/server.ts`
+
+| Constant            | Default                                                              | Purpose                                                                                                       |
+| ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `MOD_LOG_LIMIT`     | `1500`                                                               | Max mod log entries to fetch (controls how far back the scan reaches).                                        |
+| `MOD_LOG_PAGE_SIZE` | `100`                                                                | Entries per API page.                                                                                         |
+| `BOT_USERNAMES`     | `automoderator`, `botdefense`, `anti-evil operations`, `bot-bouncer` | Accounts excluded from results (case-insensitive). Usernames ending in `bot` are also excluded automatically. |
 
 ## Usage
 
@@ -76,7 +83,7 @@ In the subreddit, open the mod menu (three-dot / kebab menu at the subreddit lev
 ### View results
 
 ```sh
-devvit logs <subreddit-name>
+npm run logs <subreddit-name>
 ```
 
 Results are printed as a markdown table in the log output.

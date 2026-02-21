@@ -2,6 +2,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { context, reddit } from "@devvit/web/server";
 import type { UiResponse } from "@devvit/web/shared";
 import { ApiEndpoint } from "../shared/api.ts";
+import {
+  EMOJI_LINE_RE,
+  MAX_LINE_LENGTH,
+  SLOP_PHRASES,
+  SLOP_PHRASE_RES,
+  formatTable,
+} from "../shared/rules.ts";
 
 // ---------------------------------------------------------------------------
 // Configuration -- adjust these to change scan behaviour
@@ -12,75 +19,6 @@ const MOD_LOG_LIMIT = 1500;
 
 /** Entries per API page (max allowed by Reddit). */
 const MOD_LOG_PAGE_SIZE = 100;
-
-/** Truncation length for output lines in the results table. */
-const MAX_LINE_LENGTH = 200;
-
-/**
- * Matches lines starting with pictographic emoji (the colourful ones AI slop
- * uses). Uses Emoji_Presentation to avoid false positives on text-default
- * symbols like check marks, ballot boxes, card suits, and terminal chevrons.
- * Also matches any character rendered as emoji via a VS16 variation selector.
- */
-const EMOJI_LINE_RE =
-  /^\s*(?:\p{Emoji_Presentation}|[\p{Emoji}\u{200D}]\u{FE0F})/u;
-
-/**
- * Case-insensitive phrases commonly found in AI-generated promotional posts.
- * Each entry is matched as a substring against the full post body. Add or
- * remove entries to tune detection for the subreddit's spam patterns.
- */
-const SLOP_PHRASES: readonly string[] = [
-  "all-in-one solution",
-  "best-in-class",
-  "buckle up",
-  "complete comprehensive",
-  "comprehensive guide",
-  "comprehensive platform",
-  "comprehensive solution",
-  "comprehensive suite",
-  "cutting edge",
-  "cutting-edge",
-  "deep dive",
-  "delve into",
-  "enterprise grade",
-  "enterprise-grade",
-  "excited to announce",
-  "excited to announce",
-  "excited to share",
-  "explore how",
-  "game changer",
-  "game-changer",
-  "groundbreaking",
-  "happy to announce",
-  "happy to announce",
-  "harness the power",
-  "in this article",
-  "leverage the power",
-  "next-gen",
-  "our research",
-  "pleased to announce",
-  "production ready",
-  "production-ready",
-  "proud to announce",
-  "proud to share",
-  "revolutionise",
-  "revolutionize",
-  "robust and scalable",
-  "seamlessly integrat",
-  "state-of-the-art",
-  "take .* to the next level",
-  "the new version of my",
-  "transform the way",
-  "unleash the power",
-  "unlock the power",
-  "without further ado",
-];
-
-/** Compiled slop phrase patterns (case-insensitive). */
-const SLOP_PHRASE_RES: readonly RegExp[] = SLOP_PHRASES.map(
-  (p) => new RegExp(p, "i"),
-);
 
 /** Bot/system accounts to exclude (case-insensitive). Any username ending in
  *  "bot" is also excluded automatically -- see {@link isBot}. */
@@ -94,44 +32,6 @@ const BOT_USERNAMES = new Set([
 function isBot(username: string): boolean {
   const lower = username.toLowerCase();
   return BOT_USERNAMES.has(lower) || lower.endsWith("bot");
-}
-
-/**
- * Builds a padded markdown table. Each column is sized to the widest cell.
- * `align` per column: "r" for right-align, "l" (default) for left-align.
- */
-function formatTable(
-  headers: string[],
-  align: ("l" | "r")[],
-  rows: string[][],
-): string[] {
-  const cols = headers.length;
-  const widths: number[] = headers.map((h) => h.length);
-  for (const row of rows) {
-    for (let i = 0; i < cols; i++) {
-      widths[i] = Math.max(widths[i]!, (row[i] ?? "").length);
-    }
-  }
-
-  const pad = (s: string, w: number, a: "l" | "r") =>
-    a === "r" ? s.padStart(w) : s.padEnd(w);
-
-  const fmtRow = (cells: string[]) =>
-    "| " +
-    cells.map((c, i) => pad(c, widths[i]!, align[i] ?? "l")).join(" | ") +
-    " |";
-
-  const sep =
-    "| " +
-    widths
-      .map((w, i) => {
-        const dashes = "-".repeat(w);
-        return (align[i] ?? "l") === "r" ? dashes.slice(0, -1) + ":" : dashes;
-      })
-      .join(" | ") +
-    " |";
-
-  return [fmtRow(headers), sep, ...rows.map(fmtRow)];
 }
 
 export async function serverOnRequest(

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "check-slop detection rules",
+  "description": "Configuration for the slop detection scanner. Edit rules.json to tune phrase matching and output settings.",
+  "type": "object",
+  "required": ["slopPhrases"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "slopPhrases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "description": "Case-insensitive phrases (or regex patterns) matched against post bodies. Entries containing regex syntax (e.g. '.*') are compiled as RegExp."
+    }
+  }
+}

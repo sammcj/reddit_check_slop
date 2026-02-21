@@ -7,73 +7,17 @@
  * can preview what `devvit logs` would show without deploying.
  *
  * Usage: npm run example
- *
- * Constants are intentionally duplicated here because server.ts imports from
- * @devvit/web/server which isn't available outside the Devvit runtime.
  */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-
-// ---------------------------------------------------------------------------
-// Duplicated detection config (keep in sync with src/server/server.ts)
-// ---------------------------------------------------------------------------
-
-const MAX_LINE_LENGTH = 200;
-
-const EMOJI_LINE_RE =
-  /^\s*(?:\p{Emoji_Presentation}|[\p{Emoji}\u{200D}]\u{FE0F})/u;
-
-const SLOP_PHRASES: readonly string[] = [
-  "all-in-one solution",
-  "best-in-class",
-  "buckle up",
-  "complete comprehensive",
-  "comprehensive guide",
-  "comprehensive platform",
-  "comprehensive solution",
-  "comprehensive suite",
-  "cutting edge",
-  "cutting-edge",
-  "deep dive",
-  "delve into",
-  "enterprise grade",
-  "enterprise-grade",
-  "excited to announce",
-  "excited to announce",
-  "excited to share",
-  "explore how",
-  "game changer",
-  "game-changer",
-  "groundbreaking",
-  "happy to announce",
-  "happy to announce",
-  "harness the power",
-  "in this article",
-  "leverage the power",
-  "next-gen",
-  "our research",
-  "pleased to announce",
-  "production ready",
-  "production-ready",
-  "proud to announce",
-  "proud to share",
-  "revolutionise",
-  "revolutionize",
-  "robust and scalable",
-  "seamlessly integrat",
-  "state-of-the-art",
-  "take .* to the next level",
-  "the new version of my",
-  "transform the way",
-  "unleash the power",
-  "unlock the power",
-  "without further ado",
-];
-
-const SLOP_PHRASE_RES: readonly RegExp[] = SLOP_PHRASES.map(
-  (p) => new RegExp(p, "i"),
-);
+import {
+  EMOJI_LINE_RE,
+  MAX_LINE_LENGTH,
+  SLOP_PHRASES,
+  SLOP_PHRASE_RES,
+  formatTable,
+} from "../src/shared/rules.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,41 +28,6 @@ function splitPosts(content: string): string[] {
     .split(/^---$/m)
     .map((s) => s.trim())
     .filter(Boolean);
-}
-
-/** Duplicated from server.ts -- builds a padded markdown table. */
-function formatTable(
-  headers: string[],
-  align: ("l" | "r")[],
-  rows: string[][],
-): string[] {
-  const cols = headers.length;
-  const widths: number[] = headers.map((h) => h.length);
-  for (const row of rows) {
-    for (let i = 0; i < cols; i++) {
-      widths[i] = Math.max(widths[i]!, (row[i] ?? "").length);
-    }
-  }
-
-  const pad = (s: string, w: number, a: "l" | "r") =>
-    a === "r" ? s.padStart(w) : s.padEnd(w);
-
-  const fmtRow = (cells: string[]) =>
-    "| " +
-    cells.map((c, i) => pad(c, widths[i]!, align[i] ?? "l")).join(" | ") +
-    " |";
-
-  const sep =
-    "| " +
-    widths
-      .map((w, i) => {
-        const dashes = "-".repeat(w);
-        return (align[i] ?? "l") === "r" ? dashes.slice(0, -1) + ":" : dashes;
-      })
-      .join(" | ") +
-    " |";
-
-  return [fmtRow(headers), sep, ...rows.map(fmtRow)];
 }
 
 // ---------------------------------------------------------------------------
