@@ -135,35 +135,51 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
   );
 
   // Extract emoji-prefixed lines and slop phrases from each post
+  interface PostHit {
+    postId: string;
+    url: string;
+    emojiLines: string[];
+    matchedPhrases: string[];
+  }
+
   const emojiCounts = new Map<string, number>();
   const phraseCounts = new Map<string, number>();
+  const postHits: PostHit[] = [];
   let postsWithEmoji = 0;
   let postsWithPhrases = 0;
 
-  for (const body of postBodies.values()) {
+  for (const [postId, body] of postBodies.entries()) {
     const lines = body.split("\n");
-    let postHadEmoji = false;
+    const hit: PostHit = {
+      postId,
+      url: `https://reddit.com/r/${subredditName}/comments/${postId.replace("t3_", "")}/`,
+      emojiLines: [],
+      matchedPhrases: [],
+    };
 
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
 
-      postHadEmoji = true;
+      hit.emojiLines.push(trimmed);
       emojiCounts.set(trimmed, (emojiCounts.get(trimmed) || 0) + 1);
     }
 
-    if (postHadEmoji) postsWithEmoji++;
+    if (hit.emojiLines.length > 0) postsWithEmoji++;
 
     // Check full body for slop phrases
-    let postHadPhrase = false;
     for (const [i, re] of SLOP_PHRASE_RES.entries()) {
       if (re.test(body)) {
-        postHadPhrase = true;
         const phrase = SLOP_PHRASES[i] as string;
+        hit.matchedPhrases.push(phrase);
         phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
       }
     }
-    if (postHadPhrase) postsWithPhrases++;
+    if (hit.matchedPhrases.length > 0) postsWithPhrases++;
+
+    if (hit.emojiLines.length > 0 || hit.matchedPhrases.length > 0) {
+      postHits.push(hit);
+    }
   }
 
   // Sort by frequency descending
@@ -216,6 +232,24 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
     lines.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
 
     lines.push("");
+  }
+
+  // Per-post breakdown with URLs
+  if (postHits.length > 0) {
+    lines.push(`### Triggered posts (${postHits.length})`);
+    lines.push("");
+
+    for (const hit of postHits) {
+      const indicators = hit.emojiLines.length + hit.matchedPhrases.length;
+      lines.push(`**${hit.url}** (${indicators} indicators)`);
+      if (hit.emojiLines.length > 0) {
+        lines.push(`- Emoji lines: ${hit.emojiLines.length}`);
+      }
+      if (hit.matchedPhrases.length > 0) {
+        lines.push(`- Phrases: ${hit.matchedPhrases.join(", ")}`);
+      }
+      lines.push("");
+    }
   }
 
   if (totalIndicators === 0) {

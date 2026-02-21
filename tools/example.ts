@@ -49,34 +49,49 @@ for (const file of files) {
 
 // -- Detection (mirrors src/server/server.ts onScanEmojiPatterns) ----------
 
+interface PostHit {
+  url: string;
+  emojiLines: string[];
+  matchedPhrases: string[];
+}
+
 const emojiCounts = new Map<string, number>();
 const phraseCounts = new Map<string, number>();
+const postHits: PostHit[] = [];
 let postsWithEmoji = 0;
 let postsWithPhrases = 0;
 
-for (const body of postBodies) {
+for (let p = 0; p < postBodies.length; p++) {
+  const body = postBodies[p]!;
   const lines = body.split("\n");
-  let postHadEmoji = false;
+  const hit: PostHit = {
+    url: `https://reddit.com/r/example/comments/fake${String(p).padStart(3, "0")}/`,
+    emojiLines: [],
+    matchedPhrases: [],
+  };
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
 
-    postHadEmoji = true;
+    hit.emojiLines.push(trimmed);
     emojiCounts.set(trimmed, (emojiCounts.get(trimmed) || 0) + 1);
   }
 
-  if (postHadEmoji) postsWithEmoji++;
+  if (hit.emojiLines.length > 0) postsWithEmoji++;
 
-  let postHadPhrase = false;
   for (const [i, re] of SLOP_PHRASE_RES.entries()) {
     if (re.test(body)) {
-      postHadPhrase = true;
       const phrase = SLOP_PHRASES[i]!;
+      hit.matchedPhrases.push(phrase);
       phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
     }
   }
-  if (postHadPhrase) postsWithPhrases++;
+  if (hit.matchedPhrases.length > 0) postsWithPhrases++;
+
+  if (hit.emojiLines.length > 0 || hit.matchedPhrases.length > 0) {
+    postHits.push(hit);
+  }
 }
 
 const sortedEmoji = [...emojiCounts.entries()].sort((a, b) => b[1] - a[1]);
@@ -125,6 +140,23 @@ if (sortedPhrases.length > 0) {
   out.push(...formatTable(["Posts", "Phrase"], ["r", "l"], phraseRows));
 
   out.push("");
+}
+
+if (postHits.length > 0) {
+  out.push(`### Triggered posts (${postHits.length})`);
+  out.push("");
+
+  for (const hit of postHits) {
+    const indicators = hit.emojiLines.length + hit.matchedPhrases.length;
+    out.push(`**${hit.url}** (${indicators} indicators)`);
+    if (hit.emojiLines.length > 0) {
+      out.push(`- Emoji lines: ${hit.emojiLines.length}`);
+    }
+    if (hit.matchedPhrases.length > 0) {
+      out.push(`- Phrases: ${hit.matchedPhrases.join(", ")}`);
+    }
+    out.push("");
+  }
 }
 
 if (totalIndicators === 0) {

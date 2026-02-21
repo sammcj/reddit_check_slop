@@ -141,14 +141,6 @@ Generated with `npm run example`:
 |     1 | 🛡️ Enterprise-grade model governance                           |
 |     1 | 1️⃣ CodePilot Pro -- AI pair programming that actually works    |
 |     1 | 2️⃣ DataMesh AI -- comprehensive data pipeline automation       |
-|     1 | 3️⃣ PromptForge -- next-gen prompt engineering suite            |
-|     1 | 4️⃣ ModelHub Enterprise -- best-in-class model registry         |
-|     1 | 5️⃣ AITestBench -- automated testing for LLM outputs            |
-|     1 | 6️⃣ VectorDB Cloud -- production-ready vector storage           |
-|     1 | 7️⃣ AgentKit -- build AI agents without further ado             |
-|     1 | 8️⃣ MLOpsBot -- seamlessly integrates CI/CD with model training |
-|     1 | 9️⃣ TokenTracker -- enterprise-grade usage analytics            |
-|     1 | 🔟 NeuralDeploy -- unleash the power of one-click deployment   |
 
 ### Slop phrases matched (31 unique across 7 posts)
 
@@ -175,16 +167,19 @@ Generated with `npm run example`:
 |     1 | harness the power         |
 |     1 | in this article           |
 |     1 | robust and scalable       |
-|     1 | unlock the power          |
-|     1 | buckle up                 |
-|     1 | proud to announce         |
-|     1 | take .* to the next level |
-|     1 | groundbreaking            |
-|     1 | leverage the power        |
-|     1 | our research              |
-|     1 | unleash the power         |
-|     1 | comprehensive solution    |
-|     1 | pleased to announce       |
+
+**https://reddit.com/r/example/comments/fake003/** (8 indicators)
+- Phrases: cutting-edge, explore how, groundbreaking, happy to announce, leverage the power, our research, revolutionize, state-of-the-art
+
+**https://reddit.com/r/example/comments/fake004/** (18 indicators)
+- Emoji lines: 10
+- Phrases: best-in-class, enterprise-grade, game-changer, next-gen, production-ready, seamlessly integrat, unleash the power, without further ado
+
+**https://reddit.com/r/example/comments/fake005/** (3 indicators)
+- Phrases: comprehensive solution, excited to share, pleased to announce
+
+**https://reddit.com/r/example/comments/fake011/** (1 indicators)
+- Phrases: deep dive
 ```
 
 ## Contributing
