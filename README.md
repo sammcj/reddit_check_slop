@@ -82,6 +82,10 @@ npm run launch   # build + upload + devvit publish
 
 Remove the app from the subreddit via the Reddit mod tools or the Devvit dashboard.
 
+## Contributing
+
+- Git repo: https://github.com/sammcj/reddit_check_slop
+
 ## Licence
 
 BSD-3-Clause. See [LICENSE](LICENSE).
