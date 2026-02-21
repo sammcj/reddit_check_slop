@@ -10,7 +10,8 @@
     "dev": "devvit playtest",
     "login": "devvit login",
     "launch": "npm run build && npm run deploy && devvit publish",
-    "type-check": "tsc --build"
+    "type-check": "tsc --build",
+    "example": "node --experimental-strip-types ./tools/example.ts"
   },
   "engines": {
     "node": ">=22.6.0"

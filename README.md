@@ -2,6 +2,8 @@
 
 A [Devvit](https://developers.reddit.com/) app that scans a subreddit's mod log for removed posts and looks for signs of AI-generated spam ("slop"). It detects both emoji-prefixed lines and common promotional phrases. Results are logged to the Devvit console for review.
 
+It does **not** take any actions, it's only for reporting / generating lists of potential slop indicators. It's designed to be a starting point for mods to identify common patterns in AI-generated spam and then use that information to configure their moderation tools.
+
 ## What it does
 
 1. Fetches `removelink` entries from the subreddit mod log (posts removed by mods).
