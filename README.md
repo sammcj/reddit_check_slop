@@ -88,6 +88,18 @@ npm run logs <subreddit-name>
 
 Results are printed as a markdown table in the log output.
 
+### Export log results to CSV
+
+Save the log output to a file, then convert it:
+
+```sh
+npm run logs <subreddit-name> > scan.log
+# (wait for output, then Ctrl-C)
+npm run logs:csv scan.log results.csv
+```
+
+If the output file is omitted, CSV is written to stdout.
+
 ### Run detection locally against test data
 
 ```sh

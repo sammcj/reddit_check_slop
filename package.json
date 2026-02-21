@@ -12,7 +12,8 @@
     "launch": "npm run build && npm run deploy && devvit publish",
     "type-check": "tsc --build",
     "example": "node --experimental-strip-types ./tools/example.ts",
-    "logs": "devvit logs"
+    "logs": "devvit logs",
+    "logs:csv": "node --experimental-strip-types ./tools/logs-to-csv.ts"
   },
   "engines": {
     "node": ">=22.6.0"
