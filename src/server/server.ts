@@ -5,6 +5,7 @@ import { ApiEndpoint } from "../shared/api.ts";
 import {
   EMOJI_LINE_RE,
   MAX_LINE_LENGTH,
+  MIN_MATCH_COUNT,
   SLOP_PHRASES,
   SLOP_PHRASE_RES,
   formatTable,
@@ -136,6 +137,7 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
 
   // Extract emoji-prefixed lines and slop phrases from each post,
   // tracking which post URLs each line/phrase appeared in.
+  // Only include posts that meet the minimum match threshold.
   const emojiPosts = new Map<string, string[]>();
   const phrasePosts = new Map<string, string[]>();
   let postsWithEmoji = 0;
@@ -144,31 +146,47 @@ async function onScanEmojiPatterns(): Promise<UiResponse> {
   for (const [postId, body] of postBodies.entries()) {
     const url = `https://reddit.com/r/${subredditName}/comments/${postId.replace("t3_", "")}/`;
     const lines = body.split("\n");
-    let postHadEmoji = false;
+
+    // First pass: collect this post's matches without committing them
+    const postEmojiLines: string[] = [];
+    const postPhraseIndices: number[] = [];
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || !EMOJI_LINE_RE.test(trimmed)) continue;
-
-      postHadEmoji = true;
-      const urls = emojiPosts.get(trimmed);
-      if (urls) urls.push(url);
-      else emojiPosts.set(trimmed, [url]);
+      if (trimmed && EMOJI_LINE_RE.test(trimmed)) {
+        postEmojiLines.push(trimmed);
+      }
     }
 
-    if (postHadEmoji) postsWithEmoji++;
-
-    let postHadPhrase = false;
     for (const [i, re] of SLOP_PHRASE_RES.entries()) {
       if (re.test(body)) {
-        postHadPhrase = true;
+        postPhraseIndices.push(i);
+      }
+    }
+
+    // Skip posts below the minimum match threshold
+    const totalMatches = postEmojiLines.length + postPhraseIndices.length;
+    if (totalMatches < MIN_MATCH_COUNT) continue;
+
+    // Post meets threshold -- record its matches
+    if (postEmojiLines.length > 0) {
+      postsWithEmoji++;
+      for (const trimmed of postEmojiLines) {
+        const urls = emojiPosts.get(trimmed);
+        if (urls) urls.push(url);
+        else emojiPosts.set(trimmed, [url]);
+      }
+    }
+
+    if (postPhraseIndices.length > 0) {
+      postsWithPhrases++;
+      for (const i of postPhraseIndices) {
         const phrase = SLOP_PHRASES[i] as string;
         const urls = phrasePosts.get(phrase);
         if (urls) urls.push(url);
         else phrasePosts.set(phrase, [url]);
       }
     }
-    if (postHadPhrase) postsWithPhrases++;
   }
 
   // Sort by frequency descending

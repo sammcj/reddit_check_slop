@@ -9,6 +9,12 @@
     "$schema": {
       "type": "string"
     },
+    "minMatchCount": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Minimum number of indicators (emoji lines + phrase matches) a post must trigger to be included in results."
+    },
     "slopPhrases": {
       "type": "array",
       "items": {

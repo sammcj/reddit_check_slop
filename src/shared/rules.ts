@@ -14,6 +14,12 @@ import rulesJSON from "../../rules.json" with { type: "json" };
 export const MAX_LINE_LENGTH = 200;
 
 /**
+ * Minimum number of indicators (emoji lines + phrase matches) a post must
+ * trigger before it appears in the results. Configured in rules.json.
+ */
+export const MIN_MATCH_COUNT: number = rulesJSON.minMatchCount ?? 1;
+
+/**
  * Matches lines starting with pictographic emoji (the colourful ones AI slop
  * uses). Uses Emoji_Presentation to avoid false positives on text-default
  * symbols like check marks, ballot boxes, card suits, and terminal chevrons.

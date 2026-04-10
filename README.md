@@ -46,9 +46,10 @@ The only user-facing output is a toast notification confirming the scan finished
 
 Edit `rules.json` at the project root to tune what the scanner looks for. Both the Devvit app and the local example runner (`npm run example`) read from this file.
 
-| Key           | Purpose                                                                            |
-| ------------- | ---------------------------------------------------------------------------------- |
-| `slopPhrases` | Array of case-insensitive phrases (or regex patterns) matched against post bodies. |
+| Key             | Default | Purpose                                                                            |
+| --------------- | ------- | ---------------------------------------------------------------------------------- |
+| `slopPhrases`   | --      | Array of case-insensitive phrases (or regex patterns) matched against post bodies. |
+| `minMatchCount` | `1`     | Minimum indicators (emoji lines + phrase matches) a post must trigger to appear.   |
 
 The emoji-line regex (`EMOJI_LINE_RE`) lives in `src/shared/rules.ts` because JSON can't represent RegExp.
 

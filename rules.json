@@ -1,5 +1,6 @@
 {
   "$schema": "./rules.schema.json",
+  "minMatchCount": 1,
   "slopPhrases": [
     "all-in-one solution",
     "best-in-class",
